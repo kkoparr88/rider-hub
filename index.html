@@ -151,117 +151,84 @@
     <button onclick="location.reload()" style="width:100%; background:none; border:1px solid #444; color:#666; padding:10px; border-radius:8px; margin-top:40px;">Logout</button>
 </div>
 <script>
-    // URL from your Google Apps Script Deployment
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxVxD-Hk9bGgiXlULMuMNyElk0ZbzJ5JIolne6jWIrM_JDNbogeu26s6bH6VhSpHfozbQ/exec";
 
-    // --- UI CONTROLS (Your Original Logic) ---
-    function toggleNotif() {
-        document.getElementById('notifSidebar').classList.toggle('active');
-    }
-
+    // --- UI HELPERS ---
     function showPage(pageId) {
         document.getElementById('loginPage').style.display = 'none';
         document.getElementById('signupPage').style.display = 'none';
         document.getElementById(pageId).style.display = 'block';
     }
 
-    function openModal() {
-        document.getElementById('costModal').style.display = 'flex';
-        document.getElementById('extraAmountInput').focus();
-    }
+    // --- THE JSONP HANDLER ---
+    // This function runs automatically when Google sends the data back
+    function onAuthResponse(result) {
+        // Clean up: Remove the temporary script tag
+        const scriptTag = document.getElementById('jsonp-engine');
+        if (scriptTag) scriptTag.remove();
 
-    function closeModal() {
-        document.getElementById('costModal').style.display = 'none';
-    }
+        // Reset Buttons
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        loginBtn.disabled = false; loginBtn.innerText = "Login to Hub";
+        signupBtn.disabled = false; signupBtn.innerText = "Submit Application";
 
-    function applyExtraCost() {
-        const extra = parseFloat(document.getElementById('extraAmountInput').value) || 0;
-        const base = parseFloat(document.getElementById('baseCost').innerText);
-        
-        if (extra > 0) {
-            document.getElementById('extraRow').style.display = 'flex';
-            document.getElementById('extraCostDisplay').innerText = extra.toFixed(2);
-            document.getElementById('totalCost').innerText = "₱ " + (base + extra).toFixed(2);
-        }
-        closeModal();
-    }
-
-    // --- BACKEND CONNECTIONS (Surgical Updates) ---
-
-    async function handleLogin() {
-        const id = document.getElementById('loginID').value.trim();
-        const pass = document.getElementById('loginPass').value.trim();
-        const btn = document.getElementById('loginBtn');
-
-        if (!id || !pass) return alert("Please enter both ID and Password");
-
-        // UI Feedback
-        btn.disabled = true;
-        btn.innerText = "Checking Subscription...";
-        btn.classList.add('btn-loading');
-
-        try {
-            // We use a clean POST request for Google Apps Script
-            const response = await fetch(SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors", // This bypasses the browser CORS block
-                body: JSON.stringify({
-                    action: "login",
-                    riderId: id,
-                    password: pass
-                })
-            });
-
-            /* NOTE: When using 'no-cors', the browser cannot read the 'success' 
-               status from Google for security reasons. For now, since your 
-               priority is the 'Engine' working, we will use a small timeout 
-               to simulate the transition or you can use the standard fetch 
-               if you have enabled the CORS headers I gave you in the GS code.
-            */
-            
-            // Standard fetch (Use this if you updated the GS code with headers)
-            const standardResponse = await fetch(SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify({
-                    action: "login",
-                    riderId: id,
-                    password: pass
-                })
-            });
-
-            const result = await standardResponse.json();
-
-            if (result.success) {
+        if (result.success) {
+            if (result.message === 'Application submitted!') {
+                alert("Application Sent! Please wait for Admin manual approval.");
+                showPage('loginPage');
+            } else {
+                // Successful Login
                 document.getElementById('authOverlay').style.display = 'none';
                 document.getElementById('mainDashboard').style.display = 'block';
-                document.getElementById('riderDisplay').innerText = id.toUpperCase();
-            } else {
-                alert(result.message);
+                document.getElementById('riderDisplay').innerText = result.riderId.toUpperCase();
             }
-
-        } catch (error) {
-            console.error("Fetch Error:", error);
-            alert("Connection Error. Please ensure your Apps Script is deployed as 'Anyone'.");
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Login to Hub";
-            btn.classList.remove('btn-loading');
+        } else {
+            alert(result.message);
         }
     }
 
-    async function handleSignup() {
+    // --- ENGINE CORE ---
+    function callBackend(params) {
+        // Add the callback function name to the parameters
+        params.callback = "onAuthResponse";
+        
+        // Create the query string (e.g., ?action=login&riderId=BDH-001...)
+        const queryString = Object.keys(params)
+            .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+            .join('&');
+
+        // Inject a script tag to bypass CORS
+        const script = document.createElement('script');
+        script.id = 'jsonp-engine';
+        script.src = SCRIPT_URL + "?" + queryString;
+        document.body.appendChild(script);
+    }
+
+    function handleLogin() {
+        const id = document.getElementById('loginID').value.trim();
+        const pass = document.getElementById('loginPass').value.trim();
+        
+        if (!id || !pass) return alert("Enter ID and Password");
+
+        document.getElementById('loginBtn').disabled = true;
+        document.getElementById('loginBtn').innerText = "Verifying...";
+        
+        callBackend({ action: 'login', riderId: id, password: pass });
+    }
+
+    function handleSignup() {
         const pass = document.getElementById('regPass').value;
         const confirm = document.getElementById('regPassConfirm').value;
-        const btn = document.getElementById('signupBtn');
-
-        if (!document.getElementById('regName').value || !document.getElementById('regEmail').value) {
-            return alert("Please fill in all required fields.");
-        }
-
+        
         if (pass !== confirm) return alert("Passwords do not match!");
+        if (!document.getElementById('regName').value) return alert("Full Name is required");
 
-        const data = {
-            action: "signup",
+        document.getElementById('signupBtn').disabled = true;
+        document.getElementById('signupBtn').innerText = "Submitting...";
+
+        callBackend({
+            action: 'signup',
             fullName: document.getElementById('regName').value,
             email: document.getElementById('regEmail').value,
             messengerLink: document.getElementById('regMsg').value,
@@ -269,38 +236,12 @@
             address: document.getElementById('regAddr').value,
             licenseNo: document.getElementById('regLicense').value,
             password: pass
-        };
-
-        btn.disabled = true;
-        btn.innerText = "Submitting...";
-        btn.classList.add('btn-loading');
-
-        try {
-            const response = await fetch(SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-            
-            if (result.success) {
-                alert("Application Sent! Please wait for Admin manual approval.");
-                showPage('loginPage');
-            } else {
-                alert("Error: " + result.message);
-            }
-        } catch (error) {
-            console.error("Signup Error:", error);
-            alert("Submission Failed. Check if the Apps Script URL is correct and deployed to 'Anyone'.");
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Submit Application";
-            btn.classList.remove('btn-loading');
-        }
+        });
     }
 </script>
    
 </body>
 </html>
     
+
 
