@@ -148,7 +148,7 @@
     </div>
     <button onclick="location.reload()" style="width:100%; background:none; border:1px solid #444; color:#666; padding:10px; border-radius:8px; margin-top:40px;">Logout</button>
 </div>
- <script>
+<script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxVxD-Hk9bGgiXlULMuMNyElk0ZbzJ5JIolne6jWIrM_JDNbogeu26s6bH6VhSpHfozbQ/exec";
 
     // --- UI HELPERS ---
@@ -171,36 +171,30 @@
         if (scriptTag) scriptTag.remove();
 
         if (result.success) {
-            // 1. Registration Success
             if (result.message && result.message.includes('BDH-')) {
                 alert(result.message + "\n\nPlease save your ID! Status is Pending for approval.");
                 showPage('loginPage');
             } 
-            // 2. Login Success -> Immediately Fetch Orders
             else if (result.riderId && !result.orders) {
                 document.getElementById('authOverlay').style.display = 'none';
                 document.getElementById('mainDashboard').style.display = 'block';
                 document.getElementById('riderDisplay').innerText = result.riderId.toUpperCase();
-                
-                // Trigger the plugin to find the rider's specific file
                 callBackend({ action: 'getOrders', riderId: result.riderId });
             }
-            // 3. Plugin Response: Orders Found
             else if (result.orders) {
                 renderOrderCards(result.orders);
             }
         } else {
-            // Reset UI on Failure
             document.getElementById('loginBtn').disabled = false;
             document.getElementById('loginBtn').innerText = "Login to Hub";
             alert(result.message);
         }
     }
 
-    // --- THE ORDER RENDERER (Dynamic Grouping) ---
+    // --- THE ORDER RENDERER (Dynamic Grouping with Timestamp Plugin) ---
     function renderOrderCards(orders) {
         const orderList = document.getElementById('orderList');
-        orderList.innerHTML = ''; // Removes hardcoded Sample Data
+        orderList.innerHTML = ''; 
 
         if (orders.length === 0) {
             orderList.innerHTML = '<p style="text-align:center; color:#666; margin-top:20px;">No pending orders found for your ID.</p>';
@@ -208,7 +202,6 @@
         }
 
         orders.forEach(order => {
-            // Build Item Rows dynamically for this OrderID
             let itemRows = '';
             order.items.forEach(item => {
                 itemRows += `<tr><td>${item.name}</td><td>${item.qty}</td><td>${item.uom}</td><td>${item.source}</td></tr>`;
@@ -218,9 +211,12 @@
 
             const cardHtml = `
                 <div class="order-card animate__animated animate__fadeInUp">
-                    <div style="display:flex; justify-content:space-between;">
+                    <div style="display:flex; justify-content:space-between; align-items: flex-start;">
                         <span style="font-weight:600; color:#00aaff;">${order.orderId}</span>
-                        <span style="font-size:11px;">PENDING</span>
+                        <div style="text-align: right;">
+                            <span style="font-size:11px; font-weight: bold; display: block;">PENDING</span>
+                            <span style="font-size:10px; color: #888; display: block; margin-top: 2px;">${order.timestamp}</span>
+                        </div>
                     </div>
                     <span style="font-size:18px; font-weight:600; display:block; margin-top:10px;">${order.customer}</span>
                     <span style="font-size:13px; color:#88ccee; display:block; margin-bottom:10px;">📍 ${order.address}</span>
@@ -250,7 +246,7 @@
         });
     }
 
-    // --- ENGINE CORE (The Messenger) ---
+    // --- ENGINE CORE ---
     function callBackend(params) {
         params.callback = "onAuthResponse";
         const queryString = Object.keys(params)
@@ -266,12 +262,9 @@
     function handleLogin() {
         const id = document.getElementById('loginID').value.trim();
         const pass = document.getElementById('loginPass').value.trim();
-        
         if (!id || !pass) return alert("Enter ID and Password");
-
         document.getElementById('loginBtn').disabled = true;
         document.getElementById('loginBtn').innerText = "Verifying...";
-        
         callBackend({ action: 'login', riderId: id, password: pass });
     }
 
@@ -280,13 +273,10 @@
         const confirm = document.getElementById('regPassConfirm').value;
         const name = document.getElementById('regName').value;
         const license = document.getElementById('regLicense').value;
-        
         if (!name || !license) return alert("Full Name and License are required!");
         if (pass !== confirm) return alert("Passwords do not match!");
-
         document.getElementById('signupBtn').disabled = true;
         document.getElementById('signupBtn').innerText = "Submitting...";
-
         callBackend({
             action: 'signup',
             fullName: name,
@@ -311,6 +301,7 @@
 </body>
 </html>
     
+
 
 
 
