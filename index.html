@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BDH | Rider Hub Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: #0a1f2e; color: #eee; min-height: 100vh; overflow-x: hidden; }
+
+        /* --- NOTIFICATION SIDEBAR --- */
+        #notifSidebar {
+            position: fixed; top: 0; right: -300px; width: 300px; height: 100%;
+            background: #0d2a3a; z-index: 30000; transition: 0.4s;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5); border-left: 1px solid #00aaff; padding: 20px;
+        }
+        #notifSidebar.active { right: 0; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .notif-item { background: #163545; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 12px; border-left: 3px solid #00aaff; }
+
+        /* --- POPUP MODAL (Additional Cost) --- */
+        #costModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 20000;
+        }
+        .modal-content { background: #0d2a3a; padding: 25px; border-radius: 15px; width: 300px; border: 1px solid #00aaff; text-align: center; }
+
+        /* --- AUTH & FORMS --- */
+        #authOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background: #0a1f2e; z-index: 10000; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .auth-box { width: 100%; max-width: 400px; background: #0d2a3a; padding: 30px; border-radius: 20px; border: 1px solid #00aaff; max-height: 90vh; overflow-y: auto; }
+        label { display: block; text-align: left; font-size: 10px; color: #00aaff; margin-top: 12px; text-transform: uppercase; font-weight: 600; }
+        input { width: 100%; padding: 10px; margin-top: 4px; border-radius: 8px; border: 1px solid #1b4f72; background: #163545; color: #fff; outline: none; font-size: 13px; }
+
+        /* --- DASHBOARD --- */
+        #mainDashboard { display: none; padding: 20px; max-width: 500px; margin: 0 auto; }
+        .header { margin-bottom: 25px; border-bottom: 1px solid #1b4f72; padding-bottom: 15px; position: relative; }
+        .admin-support { font-size: 11px; color: #ffcc00; display: block; margin-top: 5px; font-weight: 600; }
+        .bell-btn { font-size: 24px; color: #00aaff; cursor: pointer; position: absolute; right: 80px; top: 0; }
+        .rider-badge { position: absolute; right: 0; top: 0; color: #00aaff; font-weight: bold; border: 1px solid #00aaff; padding: 5px 15px; border-radius: 20px; font-size: 12px; }
+
+        /* --- ORDER CARD & TABLE --- */
+        .order-card { background: #163545; border-radius: 15px; padding: 20px; margin-bottom: 25px; border-left: 5px solid #00aaff; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .item-table { width: 100%; border-collapse: collapse; background: rgba(0,0,0,0.2); border-radius: 10px; overflow: hidden; margin-top: 10px; }
+        .item-table th { background: #1b4f72; color: #00aaff; font-size: 10px; padding: 10px 8px; text-align: left; }
+        .item-table td { padding: 10px 8px; font-size: 12px; border-bottom: 1px solid #0a1f2e; }
+
+        /* --- COSTS --- */
+        .cost-row { display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; color: #ccc; }
+        .total-row { display: flex; justify-content: space-between; margin-top: 10px; font-weight: 600; padding-top: 10px; border-top: 1px dashed #1b4f72; font-size: 16px; color: #fff; }
+
+        /* --- BUTTONS --- */
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        .action-btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.3s; }
+        .main-btn { width:100%; padding:14px; background:#00aaff; color:white; border:none; border-radius:8px; margin-top:25px; font-weight:600; cursor:pointer; }
+    </style>
+</head>
+
+<body>
+
+<div id="notifSidebar">
+    <div class="sidebar-header">
+        <h3 style="color:#00aaff;">Notifications</h3>
+        <i class='bx bx-x' onclick="toggleNotif()" style="font-size: 28px; cursor: pointer;"></i>
+    </div>
+    <div class="notif-item">New Order assigned: OR-105</div>
+    <div class="notif-item">Admin Support: 0909-5310-454</div>
+</div>
+
+<div id="costModal" class="animate__animated animate__fadeIn">
+    <div class="modal-content animate__animated animate__zoomIn">
+        <h3 style="color:#00aaff; margin-bottom:10px;">Extra Cost</h3>
+        <input type="number" id="extraAmountInput" placeholder="₱ 0.00" style="text-align:center; font-size: 20px;">
+        <div class="btn-group" style="flex-direction:row;">
+            <button onclick="closeModal()" class="action-btn" style="background:#444; color:#fff;">Cancel</button>
+            <button onclick="applyExtraCost()" class="action-btn" style="background:#00aaff; color:#fff;">Apply</button>
+        </div>
+    </div>
+</div>
+
+<div id="authOverlay">
+    <div id="loginPage" class="auth-box animate__animated animate__fadeInDown">
+        <h2 style="color:#00aaff;">Rider Login</h2>
+        <label>Rider ID</label><input type="text" id="loginID" placeholder="BDH-001">
+        <label>Password</label><input type="password" id="loginPass" placeholder="••••••••">
+        <button onclick="mockLogin()" class="main-btn">Login to Hub</button>
+        <p style="text-align:center; margin-top:20px; font-size:13px;">New? <a href="#" onclick="showPage('signupPage')" style="color:#00aaff; text-decoration:none;">Apply Here</a></p>
+    </div>
+
+    <div id="signupPage" class="auth-box animate__animated animate__fadeInUp" style="display:none;">
+        <h2 style="color:#00aaff;">Registration</h2>
+        <label>Full Name</label><input type="text" id="regName">
+        <label>Email</label><input type="email" id="regEmail">
+        <label>Messenger Link</label><input type="text" id="regMsg">
+        <label>Contact #</label><input type="text" id="regPhone">
+        <label>Address</label><input type="text" id="regAddr">
+        <label>License No.</label><input type="text" id="regLicense">
+        <label>Password</label><input type="password" id="regPass">
+        <label>Confirm Password</label><input type="password" id="regPassConfirm">
+        <button onclick="mockSignup()" class="main-btn" style="background:#28a745;">Submit Application</button>
+        <p style="text-align:center; margin-top:15px;"><a href="#" onclick="showPage('loginPage')" style="color:#ccc; text-decoration:none;">Back to Login</a></p>
+    </div>
+</div>
+
+<div id="mainDashboard">
+    <div class="header">
+        <i class='bx bxs-bell bell-btn animate__animated animate__swing animate__infinite' onclick="toggleNotif()"></i>
+        <span class="rider-badge" id="riderDisplay">BDH-001</span>
+        <h2>My Queue</h2>
+        <span class="admin-support">Admin Support: 0909-5310-454</span>
+    </div>
+
+    <div id="orderList">
+        <div class="order-card animate__animated animate__fadeInUp">
+            <div style="display:flex; justify-content:space-between;">
+                <span style="font-weight:600; color:#00aaff;">OR-105</span>
+                <span style="font-size:11px;">4:15 PM</span>
+            </div>
+            <span style="font-size:18px; font-weight:600; display:block; margin-top:10px;">Kiko</span>
+            <span style="font-size:13px; color:#88ccee; display:block; margin-bottom:10px;">📍 Brgy 01, Borongan</span>
+            
+            <table class="item-table">
+                <thead><tr><th>ITEM</th><th>QTY</th><th>UOM</th><th>SOURCE</th></tr></thead>
+                <tbody><tr><td>Coke 1.5L</td><td>2</td><td>pcs</td><td>Store A</td></tr></tbody>
+            </table>
+
+            <div class="cost-row" style="margin-top:15px;">
+                <span>Delivery Cost:</span><span>₱ <span id="baseCost">150.00</span></span>
+            </div>
+            <div id="extraRow" class="cost-row" style="display:none; color: #00aaff;">
+                <span>Additional Cost:</span><span>₱ <span id="extraCostDisplay">0.00</span></span>
+            </div>
+            <div class="total-row">
+                <span>Total:</span><span id="totalCost">₱ 150.00</span>
+            </div>
+
+            <div class="btn-group">
+                <button onclick="openModal()" class="action-btn" style="background:#1b4f72; color:#00aaff; border:1px solid #00aaff;">Add Additional Cost</button>
+                <button class="action-btn" style="background:#ffcc00; color:#000;" onclick="this.innerText='Accepted ✅'; this.style.background='#28a745'; this.style.color='#fff';">Accept Order</button>
+                <button class="action-btn" style="background:#00aaff; color:white;" onclick="alert('Order Completed!')">Complete Order</button>
+            </div>
+        </div>
+    </div>
+    <button onclick="location.reload()" style="width:100%; background:none; border:1px solid #444; color:#666; padding:10px; border-radius:8px; margin-top:40px;">Logout</button>
+</div>
+
+<script>
+    function toggleNotif() {
+        document.getElementById('notifSidebar').classList.toggle('active');
+    }
+
+    function showPage(pageId) {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('signupPage').style.display = 'none';
+        document.getElementById(pageId).style.display = 'block';
+    }
+
+    function mockLogin() {
+        const id = document.getElementById('loginID').value;
+        if(!id) return alert("Enter ID");
+        document.getElementById('authOverlay').style.display = 'none';
+        document.getElementById('mainDashboard').style.display = 'block';
+        document.getElementById('riderDisplay').innerText = id.toUpperCase();
+    }
+
+    function mockSignup() { alert("Application Sent!"); showPage('loginPage'); }
+
+    // ADDITIONAL COST LOGIC
+    function openModal() {
+        document.getElementById('costModal').style.display = 'flex';
+        document.getElementById('extraAmountInput').focus();
+    }
+
+    function closeModal() {
+        document.getElementById('costModal').style.display = 'none';
+    }
+
+    function applyExtraCost() {
+        const extra = parseFloat(document.getElementById('extraAmountInput').value) || 0;
+        const base = parseFloat(document.getElementById('baseCost').innerText);
+        
+        if (extra > 0) {
+            document.getElementById('extraRow').style.display = 'flex';
+            document.getElementById('extraCostDisplay').innerText = extra.toFixed(2);
+            document.getElementById('totalCost').innerText = "₱ " + (base + extra).toFixed(2);
+        }
+        closeModal();
+    }
+</script>
+</body>
+</html>
