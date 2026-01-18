@@ -149,7 +149,7 @@
     <button onclick="location.reload()" style="width:100%; background:none; border:1px solid #444; color:#666; padding:10px; border-radius:8px; margin-top:40px;">Logout</button>
 </div>
     <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxVxD-Hk9bGgiXlULMuMNyElk0ZbzJ5JIolne6jWIrM_JDNbogeu26s6bH6VhSpHfozbQ/exec";
+   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxVxD-Hk9bGgiXlULMuMNyElk0ZbzJ5JIolne6jWIrM_JDNbogeu26s6bH6VhSpHfozbQ/exec";
 
     // --- UI HELPERS ---
     function showPage(pageId) {
@@ -159,9 +159,8 @@
     }
 
     // --- THE JSONP HANDLER ---
-    // This function runs automatically when Google sends the data back
     function onAuthResponse(result) {
-        // Clean up: Remove the temporary script tag
+        // Clean up script tag
         const scriptTag = document.getElementById('jsonp-engine');
         if (scriptTag) scriptTag.remove();
 
@@ -172,8 +171,9 @@
         signupBtn.disabled = false; signupBtn.innerText = "Submit Application";
 
         if (result.success) {
-            if (result.message === 'Application submitted!') {
-                alert("Application Sent! Please wait for Admin manual approval.");
+            // Check if this was a signup (it contains 'BDH-' in the message)
+            if (result.message.includes('BDH-')) {
+                alert(result.message + "\n\nPlease save your ID! You can login once Admin approves you.");
                 showPage('loginPage');
             } else {
                 // Successful Login
@@ -182,21 +182,18 @@
                 document.getElementById('riderDisplay').innerText = result.riderId.toUpperCase();
             }
         } else {
+            // This will show "Invalid ID", "Need Subscription", or "Access Denied"
             alert(result.message);
         }
     }
 
     // --- ENGINE CORE ---
     function callBackend(params) {
-        // Add the callback function name to the parameters
         params.callback = "onAuthResponse";
-        
-        // Create the query string (e.g., ?action=login&riderId=BDH-001...)
         const queryString = Object.keys(params)
             .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
             .join('&');
 
-        // Inject a script tag to bypass CORS
         const script = document.createElement('script');
         script.id = 'jsonp-engine';
         script.src = SCRIPT_URL + "?" + queryString;
@@ -218,29 +215,32 @@
     function handleSignup() {
         const pass = document.getElementById('regPass').value;
         const confirm = document.getElementById('regPassConfirm').value;
+        const name = document.getElementById('regName').value;
+        const license = document.getElementById('regLicense').value;
         
+        if (!name || !license) return alert("Full Name and License are required!");
         if (pass !== confirm) return alert("Passwords do not match!");
-        if (!document.getElementById('regName').value) return alert("Full Name is required");
 
         document.getElementById('signupBtn').disabled = true;
         document.getElementById('signupBtn').innerText = "Submitting...";
 
         callBackend({
             action: 'signup',
-            fullName: document.getElementById('regName').value,
+            fullName: name,
             email: document.getElementById('regEmail').value,
             messengerLink: document.getElementById('regMsg').value,
             contactNumber: document.getElementById('regPhone').value,
             address: document.getElementById('regAddr').value,
-            licenseNo: document.getElementById('regLicense').value,
+            licenseNo: license,
             password: pass
         });
     }
-</script>
+    </script>
    
 </body>
 </html>
     
+
 
 
 
