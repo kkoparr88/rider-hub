@@ -149,7 +149,7 @@
     <button onclick="location.reload()" style="width:100%; background:none; border:1px solid #444; color:#666; padding:10px; border-radius:8px; margin-top:40px;">Logout</button>
 </div>
     <script>
-   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxVxD-Hk9bGgiXlULMuMNyElk0ZbzJ5JIolne6jWIrM_JDNbogeu26s6bH6VhSpHfozbQ/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxVxD-Hk9bGgiXlULMuMNyElk0ZbzJ5JIolne6jWIrM_JDNbogeu26s6bH6VhSpHfozbQ/exec";
 
     // --- UI HELPERS ---
     function showPage(pageId) {
@@ -158,36 +158,42 @@
         document.getElementById(pageId).style.display = 'block';
     }
 
-    // --- THE JSONP HANDLER ---
+    function toggleNotif() {
+        document.getElementById('notifSidebar').classList.toggle('active');
+    }
+
+    function openModal() { document.getElementById('costModal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('costModal').style.display = 'none'; }
+
+    // --- THE JSONP HANDLER (The Receiver) ---
     function onAuthResponse(result) {
-        // Clean up script tag
         const scriptTag = document.getElementById('jsonp-engine');
         if (scriptTag) scriptTag.remove();
 
-        // Reset Buttons
         const loginBtn = document.getElementById('loginBtn');
         const signupBtn = document.getElementById('signupBtn');
         loginBtn.disabled = false; loginBtn.innerText = "Login to Hub";
         signupBtn.disabled = false; signupBtn.innerText = "Submit Application";
 
         if (result.success) {
-            // Check if this was a signup (it contains 'BDH-' in the message)
-            if (result.message.includes('BDH-')) {
-                alert(result.message + "\n\nPlease save your ID! You can login once Admin approves you.");
+            // Logic for Registration Success
+            if (result.message && result.message.includes('BDH-')) {
+                alert(result.message + "\n\nPlease save your ID! Status is Pending for approval.");
                 showPage('loginPage');
-            } else {
-                // Successful Login
+            } 
+            // Logic for Login Success
+            else {
                 document.getElementById('authOverlay').style.display = 'none';
                 document.getElementById('mainDashboard').style.display = 'block';
                 document.getElementById('riderDisplay').innerText = result.riderId.toUpperCase();
             }
         } else {
-            // This will show "Invalid ID", "Need Subscription", or "Access Denied"
+            // Handles "Need Subscription", "Invalid ID", etc.
             alert(result.message);
         }
     }
 
-    // --- ENGINE CORE ---
+    // --- ENGINE CORE (The Messenger) ---
     function callBackend(params) {
         params.callback = "onAuthResponse";
         const queryString = Object.keys(params)
@@ -235,11 +241,23 @@
             password: pass
         });
     }
-    </script>
-   
+
+    function applyExtraCost() {
+        const amount = document.getElementById('extraAmountInput').value;
+        if(amount) {
+            document.getElementById('extraRow').style.display = 'flex';
+            document.getElementById('extraCostDisplay').innerText = parseFloat(amount).toFixed(2);
+            const total = 150 + parseFloat(amount);
+            document.getElementById('totalCost').innerText = "₱ " + total.toFixed(2);
+            closeModal();
+        }
+    }
+</script>
+    
 </body>
 </html>
     
+
 
 
 
