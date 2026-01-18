@@ -148,7 +148,7 @@
     </div>
     <button onclick="location.reload()" style="width:100%; background:none; border:1px solid #444; color:#666; padding:10px; border-radius:8px; margin-top:40px;">Logout</button>
 </div>
-   <script>
+ <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxVxD-Hk9bGgiXlULMuMNyElk0ZbzJ5JIolne6jWIrM_JDNbogeu26s6bH6VhSpHfozbQ/exec";
 
     // --- UI HELPERS ---
@@ -158,53 +158,57 @@
         document.getElementById(pageId).style.display = 'block';
     }
 
-    function toggleNotif() { document.getElementById('notifSidebar').classList.toggle('active'); }
+    function toggleNotif() {
+        document.getElementById('notifSidebar').classList.toggle('active');
+    }
+
     function openModal() { document.getElementById('costModal').style.display = 'flex'; }
     function closeModal() { document.getElementById('costModal').style.display = 'none'; }
 
-    // --- THE JSONP HANDLER (Handles Login & Fetching Orders) ---
+    // --- THE JSONP HANDLER (The Hub) ---
     function onAuthResponse(result) {
         const scriptTag = document.getElementById('jsonp-engine');
         if (scriptTag) scriptTag.remove();
 
         if (result.success) {
-            // A. Registration Success
+            // 1. Registration Success
             if (result.message && result.message.includes('BDH-')) {
                 alert(result.message + "\n\nPlease save your ID! Status is Pending for approval.");
                 showPage('loginPage');
             } 
-            // B. Login Success -> Now trigger Order Fetch
+            // 2. Login Success -> Immediately Fetch Orders
             else if (result.riderId && !result.orders) {
                 document.getElementById('authOverlay').style.display = 'none';
                 document.getElementById('mainDashboard').style.display = 'block';
                 document.getElementById('riderDisplay').innerText = result.riderId.toUpperCase();
                 
-                // Automatically fetch orders for this rider
+                // Trigger the plugin to find the rider's specific file
                 callBackend({ action: 'getOrders', riderId: result.riderId });
             }
-            // C. Orders Received -> Build the Cards
+            // 3. Plugin Response: Orders Found
             else if (result.orders) {
                 renderOrderCards(result.orders);
             }
         } else {
+            // Reset UI on Failure
             document.getElementById('loginBtn').disabled = false;
             document.getElementById('loginBtn').innerText = "Login to Hub";
             alert(result.message);
         }
     }
 
-    // --- RENDER ENGINE (Builds the real cards) ---
+    // --- THE ORDER RENDERER (Dynamic Grouping) ---
     function renderOrderCards(orders) {
         const orderList = document.getElementById('orderList');
-        orderList.innerHTML = ''; // Clear Sample Data
+        orderList.innerHTML = ''; // Removes hardcoded Sample Data
 
         if (orders.length === 0) {
-            orderList.innerHTML = '<p style="text-align:center; color:#666; margin-top:20px;">No pending orders assigned.</p>';
+            orderList.innerHTML = '<p style="text-align:center; color:#666; margin-top:20px;">No pending orders found for your ID.</p>';
             return;
         }
 
         orders.forEach(order => {
-            // Create Table Rows for Items
+            // Build Item Rows dynamically for this OrderID
             let itemRows = '';
             order.items.forEach(item => {
                 itemRows += `<tr><td>${item.name}</td><td>${item.qty}</td><td>${item.uom}</td><td>${item.source}</td></tr>`;
@@ -237,19 +241,77 @@
                     </div>
 
                     <div class="btn-group">
-                        <button onclick="openModal()" class="action-btn" style="background:#1b4f72; color:#00aaff; border:1px solid #00aaff;">Update Costs</button>
+                        <button onclick="openModal()" class="action-btn" style="background:#1b4f72; color:#00aaff; border:1px solid #00aaff;">Update Fees</button>
                         <button class="action-btn" style="background:#ffcc00; color:#000;" onclick="this.innerText='Accepted ✅'; this.style.background='#28a745'; this.style.color='#fff';">Accept Order</button>
-                        <button class="action-btn" style="background:#00aaff; color:white;" onclick="alert('Completing ${order.orderId}...')">Complete Order</button>
+                        <button class="action-btn" style="background:#00aaff; color:white;" onclick="alert('Completing Order ${order.orderId}')">Complete Order</button>
                     </div>
                 </div>`;
             orderList.innerHTML += cardHtml;
         });
+    }
+
+    // --- ENGINE CORE (The Messenger) ---
+    function callBackend(params) {
+        params.callback = "onAuthResponse";
+        const queryString = Object.keys(params)
+            .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+            .join('&');
+
+        const script = document.createElement('script');
+        script.id = 'jsonp-engine';
+        script.src = SCRIPT_URL + "?" + queryString;
+        document.body.appendChild(script);
+    }
+
+    function handleLogin() {
+        const id = document.getElementById('loginID').value.trim();
+        const pass = document.getElementById('loginPass').value.trim();
+        
+        if (!id || !pass) return alert("Enter ID and Password");
+
+        document.getElementById('loginBtn').disabled = true;
+        document.getElementById('loginBtn').innerText = "Verifying...";
+        
+        callBackend({ action: 'login', riderId: id, password: pass });
+    }
+
+    function handleSignup() {
+        const pass = document.getElementById('regPass').value;
+        const confirm = document.getElementById('regPassConfirm').value;
+        const name = document.getElementById('regName').value;
+        const license = document.getElementById('regLicense').value;
+        
+        if (!name || !license) return alert("Full Name and License are required!");
+        if (pass !== confirm) return alert("Passwords do not match!");
+
+        document.getElementById('signupBtn').disabled = true;
+        document.getElementById('signupBtn').innerText = "Submitting...";
+
+        callBackend({
+            action: 'signup',
+            fullName: name,
+            email: document.getElementById('regEmail').value,
+            messengerLink: document.getElementById('regMsg').value,
+            contactNumber: document.getElementById('regPhone').value,
+            address: document.getElementById('regAddr').value,
+            licenseNo: license,
+            password: pass
+        });
+    }
+
+    function applyExtraCost() {
+        const amount = document.getElementById('extraAmountInput').value;
+        if(amount) {
+            alert("This will update the additional fee in your Google Sheet. Logic coming soon!");
+            closeModal();
+        }
     }
 </script>
     
 </body>
 </html>
     
+
 
 
 
