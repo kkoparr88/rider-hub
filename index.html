@@ -191,7 +191,7 @@
         }
     }
 
-    // --- THE ORDER RENDERER (Dynamic Grouping with Timestamp Plugin) ---
+   // --- THE ORDER RENDERER (Updated with CustomerID Plugin) ---
     function renderOrderCards(orders) {
         const orderList = document.getElementById('orderList');
         orderList.innerHTML = ''; 
@@ -214,8 +214,9 @@
                     <div style="display:flex; justify-content:space-between; align-items: flex-start;">
                         <span style="font-weight:600; color:#00aaff;">${order.orderId}</span>
                         <div style="text-align: right;">
-                            <span style="font-size:11px; font-weight: bold; display: block;">PENDING</span>
+                            <span style="font-size:11px; font-weight: bold; display: block; color: #ffcc00;">PENDING</span>
                             <span style="font-size:10px; color: #888; display: block; margin-top: 2px;">${order.timestamp}</span>
+                            <span style="font-size:10px; color: #00aaff; display: block; margin-top: 2px;">ID: ${order.customerId}</span>
                         </div>
                     </div>
                     <span style="font-size:18px; font-weight:600; display:block; margin-top:10px;">${order.customer}</span>
@@ -246,6 +247,7 @@
         });
     }
 
+    
     // --- ENGINE CORE ---
     function callBackend(params) {
         params.callback = "onAuthResponse";
@@ -301,6 +303,7 @@
 </body>
 </html>
     
+
 
 
 
